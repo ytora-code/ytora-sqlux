@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>xyz.ytora</groupId>
+    <artifactId>ytora-sqlux</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <name>ytora-sqlux</name>
+    <description>数据库操作框架，轻ORM，以尽可能贴近SQL的语法组织框架的API</description>
+
+    <properties>
+        <!-- JDK 版本 -->
+        <java.version>8</java.version>
+        <!-- Java 编译发布版本，确保源码、字节码、API 都以 8 为边界。 -->
+        <java.release>${java.version}</java.release>
+        <!-- 源码文件编码，避免中文注释、字符串出现乱码。 -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- 报告类输出编码，例如 Javadoc。 -->
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- 是否把方法参数名写入字节码，便于反射读取真实参数名。 -->
+        <maven.compiler.parameters>true</maven.compiler.parameters>
+        <!-- 编译时显示警告信息，便于尽早发现潜在问题。 -->
+        <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+        <!-- JUnit 5 版本，统一管理测试依赖版本。 -->
+        <junit.jupiter.version>5.12.2</junit.jupiter.version>
+        <!-- 单元测试执行插件版本。 -->
+        <maven.surefire.version>3.5.3</maven.surefire.version>
+        <!-- 源码包生成插件版本。 -->
+        <maven.source.version>3.3.1</maven.source.version>
+        <!-- Javadoc 包生成插件版本。 -->
+        <maven.javadoc.version>3.8.0</maven.javadoc.version>
+        <!-- Maven Enforcer 插件版本。 -->
+        <maven.enforcer.version>3.5.0</maven.enforcer.version>
+        <!-- Animal Sniffer 插件版本。 -->
+        <animal.sniffer.version>1.24</animal.sniffer.version>
+        <!-- Java 8 API 签名包版本。 -->
+        <java18.signature.version>1.0</java18.signature.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>xyz.ytora</groupId>
+            <artifactId>ytora-toolkit</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <!-- 类路径扫描 -->
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <version>4.8.179</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}</finalName>
+        <plugins>
+            <!--
+                Java 编译插件。
+                作用：控制源码编译方式、JDK 版本、编码和编译参数。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <!-- 指定编译发布版本，统一约束语法、字节码和可用 API。 -->
+                    <release>${java.release}</release>
+                    <!-- 指定源码文件编码。 -->
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <!-- 把方法参数名保留到字节码中。 -->
+                    <parameters>${maven.compiler.parameters}</parameters>
+                    <!-- 编译时显示警告。 -->
+                    <showWarnings>${maven.compiler.showWarnings}</showWarnings>
+                    <compilerArgs>
+                        <!-- 开启尽可能完整的 javac lint 检查。 -->
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!--
+                测试执行插件。
+                作用：在 test 阶段自动发现并运行单元测试。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+                <configuration>
+                    <!--
+                        当前项目是基于 Java 8，关闭 module path 可减少
+                        在不同 JDK 环境下的兼容性问题。
+                    -->
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+
+            <!--
+                源码包生成插件。
+                作用：在 verify 阶段额外附带一个 sources jar，
+                便于 IDE 查看源码、发布到私服或中央仓库。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.version}</version>
+                <executions>
+                    <execution>
+                        <!-- 当前执行单元的唯一标识。 -->
+                        <id>attach-sources</id>
+                        <!-- 在 verify 阶段生成并挂载源码包。 -->
+                        <phase>verify</phase>
+                        <goals>
+                            <!-- 生成源码 jar，且不额外触发一次构建生命周期。 -->
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Javadoc 生成插件。
+                作用：在 verify 阶段生成并附带 javadoc jar，
+                便于文档发布、仓库展示和 IDE 提示。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.version}</version>
+                <configuration>
+                    <!-- Javadoc 文档编码。 -->
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <!-- 按 8 语法生成 Javadoc。 -->
+                    <source>${java.version}</source>
+                    <!-- 关闭严格文档检查，降低初始化阶段的阻塞。 -->
+                    <doclint>none</doclint>
+                    <!-- 即使当前没有完善文档，也不要让构建失败。 -->
+                    <failOnError>false</failOnError>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- 当前执行单元的唯一标识。 -->
+                        <id>attach-javadocs</id>
+                        <!-- 在 verify 阶段生成并挂载 javadoc jar。 -->
+                        <phase>verify</phase>
+                        <goals>
+                            <!-- 生成 javadoc jar。 -->
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                构建环境约束插件。
+                作用：在构建开始时校验 Maven 版本和运行构建的 JDK 版本，
+                避免错误环境下构建出不符合预期的产物。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven.enforcer.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-build-environment</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- 要求 Maven 版本至少为 3.8.6。 -->
+                                <requireMavenVersion>
+                                    <version>[3.8.6,)</version>
+                                </requireMavenVersion>
+                                <!-- 构建时至少使用 JDK 8。 -->
+                                <requireJavaVersion>
+                                    <version>[1.8,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Java API 兼容性检查插件。
+                作用：检查源码中是否误用了 Java 8 之后才引入的 JDK API，
+                避免“字节码版本是 8，但运行时仍然不兼容 Java 8”的问题。
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <version>${animal.sniffer.version}</version>
+                <executions>
+                    <execution>
+                        <id>check-java8-api</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <signature>
+                                <groupId>org.codehaus.mojo.signature</groupId>
+                                <!-- 这里的18，指的是1.8，并不是jdk18 -->
+                                <artifactId>java18</artifactId>
+                                <version>${java18.signature.version}</version>
+                            </signature>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

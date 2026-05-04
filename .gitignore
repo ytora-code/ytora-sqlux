@@ -1,0 +1,45 @@
+# 编译产物
+*.class
+*.jar
+*.war
+*.ear
+*.db
+
+# IntelliJ IDEA
+.idea/
+.idea/libraries
+.idea/modules.xml
+*.iml
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+
+# VS Code
+.vscode/
+
+# Maven
+target/
+
+# Gradle
+.gradle/
+build/
+
+# 日志文件
+*.log
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.bak
+*.swp
+*.swo
+*.tmp
+*.orig
