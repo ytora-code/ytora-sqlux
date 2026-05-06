@@ -161,6 +161,20 @@ public class SelectStage extends AbsSelect {
     }
 
     /**
+     * SELECT 后可能进入 FROM 阶段。
+     */
+    public FromStage<Object> from(String table) {
+        return fromStage(table, null);
+    }
+
+    /**
+     * SELECT 后可能进入 FROM 阶段。
+     */
+    public FromStage<Object> from(String table, String alias) {
+        return fromStage(table, alias);
+    }
+
+    /**
      * SELECT 后可能进入 FROM 子查询阶段。
      */
     public FromStage<Object> from(AbsSelect subQuery, String alias) {

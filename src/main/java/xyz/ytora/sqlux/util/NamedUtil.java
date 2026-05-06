@@ -9,6 +9,8 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 表、列的名称工具类
@@ -19,6 +21,16 @@ import java.lang.reflect.Method;
  * @since 1.0
  */
 public class NamedUtil {
+
+    /**
+     * 缓存映射： 表名称 <-> 实体类
+     */
+    public static Map<String, Class<?>> tableNameEntityClazzCache = new ConcurrentHashMap<>();
+
+    /**
+     * 缓存映射：实体类 <-> 表名称
+     */
+    public static Map<Class<?>, String> entityClazzTableNameCache = new ConcurrentHashMap<>();
 
     /**
      * 解析实体类对应的数据库表名称
@@ -34,8 +46,12 @@ public class NamedUtil {
      * @param <T> 实体类型
      */
     public static <T> String parseTableName(Class<T> tableClazz) {
+        String tableName = getTableNameFromCache(tableClazz);
+        if (tableName != null) {
+            return tableName;
+        }
+
         Table anno = tableClazz.getAnnotation(Table.class);
-        String tableName;
         if (anno != null && anno.value() != null && !anno.value().trim().isEmpty()) {
             tableName = anno.value();
         } else {
@@ -134,6 +150,27 @@ public class NamedUtil {
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("无法解析字段所属实体类: " + className, e);
         }
+    }
+
+    /**
+     * 根据实体类从缓存中获取表名称
+     * @param tableClazz 实体类
+     * @return 表名称
+     * @param <T> 实体类型
+     */
+    public static <T> String getTableNameFromCache(Class<T> tableClazz) {
+        return entityClazzTableNameCache.get(tableClazz);
+    }
+
+    /**
+     * 根据表名称从缓存中获取实体类
+     * @param tableName 表名称
+     * @return 实体类
+     * @param <T> 实体类型
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> Class<T> getEntityClazzFromCache(String tableName) {
+        return (Class<T>) tableNameEntityClazzCache.get(tableName);
     }
 
     /**

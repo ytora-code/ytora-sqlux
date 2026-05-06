@@ -162,4 +162,26 @@ class SqlDslTranslationTest {
         assertTrue(sql.getSql().contains("WHERE"));
         assertEquals(Collections.<Object>singletonList("42"), sql.getParams());
     }
+
+    // 验证字符串形式的 FROM 会直接保留原始表片段，不再做实体表名解析或标识符转义。
+    @Test
+    void rawFromSourceIsRenderedAsPassedToken() {
+        SqlResult sql = SQL.selectRaw("count(*)")
+                .from("ytora.sys_user")
+                .toSql(DbType.POSTGRESQL);
+
+        assertTrue(sql.getSql().contains("FROM ytora.sys_user"));
+        assertEquals(Collections.emptyList(), sql.getParams());
+    }
+
+    // 验证字符串形式的 FROM 支持单独传入别名，并在 SQL 中直接追加该别名。
+    @Test
+    void rawFromSourceSupportsExplicitAlias() {
+        SqlResult sql = SQL.selectRaw("u.id")
+                .from("ytora.sys_user", "u")
+                .toSql(DbType.POSTGRESQL);
+
+        assertTrue(sql.getSql().contains("FROM ytora.sys_user u"));
+        assertEquals(Collections.emptyList(), sql.getParams());
+    }
 }

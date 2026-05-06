@@ -150,6 +150,20 @@ public abstract class AbsSelect implements TerminationStage<List<Map<String, Obj
     }
 
     /**
+     * 写入原始表 FROM 子句并进入 FROM 阶段。
+     *
+     * <p>该入口会直接保留调用方传入的表片段，不再做实体表名解析或方言标识符转义。</p>
+     *
+     * @param source 主表原始片段
+     * @param alias 主表别名；为空时不追加别名
+     * @return FROM 阶段对象
+     */
+    protected FromStage<Object> fromStage(String source, String alias) {
+        query.setFrom(new RawTableSource(source, alias));
+        return new FromStage<>(query, null);
+    }
+
+    /**
      * 写入子查询 FROM 子句并进入 FROM 阶段。
      *
      * @param subQuery 子查询阶段对象
