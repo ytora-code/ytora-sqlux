@@ -3,10 +3,14 @@ package xyz.ytora.sqlux;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import xyz.ytora.sqlux.core.SQL;
+import xyz.ytora.sqlux.core.SqluxContext;
+import xyz.ytora.sqlux.core.enums.DbType;
+import xyz.ytora.sqlux.core.execute.JDBCExecutor;
 import xyz.ytora.sqlux.interceptor.log.SqlLogEvent;
 import xyz.ytora.sqlux.interceptor.log.SqlLogger;
 import xyz.ytora.sqlux.interceptor.Interceptor;
 import xyz.ytora.sqlux.interceptor.SqlRewriteContext;
+import xyz.ytora.sqlux.translate.SqlResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +59,29 @@ class GlobalAndInterceptorTest {
         List<SqluxTestUser> result = SQL.select().from(SqluxTestUser.class).submit(SqluxTestUser.class);
         assertEquals(1, result.size());
         assertEquals("alice", result.get(0).getLoginName());
+    }
+
+    // 验证无参 toSql/submit 路径会先执行 beforeTranslate，再解析当前方言，允许拦截器动态设置 SqluxContext。
+    @Test
+    void beforeTranslateInterceptorCanSetDbTypeContextBeforeDialectResolution() {
+        SQL.getSqluxGlobal().setExecutor(new JDBCExecutor(SqluxTestSupport.provider(), DbType.MYSQL));
+        SQL.getSqluxGlobal().registerInterceptor(new Interceptor() {
+            @Override
+            public void beforeTranslate(SqlRewriteContext context) {
+                SqluxContext.setDbType(DbType.POSTGRESQL);
+            }
+        });
+
+        try {
+            SqlResult sql = SQL.select(SqluxTestUser::getLoginName)
+                    .from(SqluxTestUser.class)
+                    .toSql();
+
+            assertTrue(sql.getSql().contains("\"sqlux_test_user\""));
+            assertTrue(sql.getSql().contains("\"login_name\""));
+        } finally {
+            SqluxContext.clear();
+        }
     }
 
     // 验证 SQL 日志器能够同时收到执行前、执行成功和执行失败三种事件回调。

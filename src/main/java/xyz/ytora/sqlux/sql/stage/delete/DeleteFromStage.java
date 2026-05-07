@@ -154,7 +154,10 @@ public class DeleteFromStage implements TerminationStage<Integer> {
      * @return SQL翻译结果
      */
     public SqlResult toSql() {
-        return toSql(SQL.getSqluxGlobal().getDbType());
+        for (Interceptor interceptor : SQL.getSqluxGlobal().snapshotInterceptors()) {
+            interceptor.beforeTranslate(new SqlRewriteContext(SqlType.DELETE, query));
+        }
+        return DialectFactory.getDialect(SQL.getSqluxGlobal().getDbType()).deleteTranslator().translate(query);
     }
 
     /**

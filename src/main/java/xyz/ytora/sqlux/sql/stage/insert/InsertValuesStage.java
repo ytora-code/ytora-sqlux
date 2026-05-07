@@ -165,7 +165,10 @@ public class InsertValuesStage implements TerminationStage<Integer> {
      * @return SQL翻译结果；出参包含 SQL 文本和有序参数
      */
     public SqlResult toSql() {
-        return toSql(SQL.getSqluxGlobal().getDbType());
+        for (Interceptor interceptor : SQL.getSqluxGlobal().snapshotInterceptors()) {
+            interceptor.beforeTranslate(new SqlRewriteContext(SqlType.INSERT, query));
+        }
+        return DialectFactory.getDialect(SQL.getSqluxGlobal().getDbType()).insertTranslator().translate(query);
     }
 
     /**
@@ -187,7 +190,21 @@ public class InsertValuesStage implements TerminationStage<Integer> {
      * @return 单行 INSERT SQL 翻译结果
      */
     private SqlResult toBatchSql() {
-        return toBatchSql(SQL.getSqluxGlobal().getDbType());
+        if (query.getSelectQuery() != null) {
+            throw new IllegalStateException("INSERT SELECT 不支持批处理提交");
+        }
+        if (query.getRows().isEmpty()) {
+            throw new IllegalStateException("INSERT缺少VALUES数据");
+        }
+        InsertQuery batchQuery = new InsertQuery(query.getTable().getTableClass());
+        for (ColumnRef column : query.getColumns()) {
+            batchQuery.addColumn(column);
+        }
+        batchQuery.addRow(query.getRows().get(0));
+        for (Interceptor interceptor : SQL.getSqluxGlobal().snapshotInterceptors()) {
+            interceptor.beforeTranslate(new SqlRewriteContext(SqlType.INSERT, batchQuery));
+        }
+        return DialectFactory.getDialect(SQL.getSqluxGlobal().getDbType()).insertTranslator().translate(batchQuery);
     }
 
     /**

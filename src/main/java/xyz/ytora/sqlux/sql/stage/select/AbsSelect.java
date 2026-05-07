@@ -120,7 +120,7 @@ public abstract class AbsSelect implements TerminationStage<List<Map<String, Obj
      * @return SQL翻译结果
      */
     public SqlResult toSql() {
-        return toSql(SQL.getSqluxGlobal().getDbType());
+        return SelectSqlSupport.toSql(query);
     }
 
     /**

@@ -230,7 +230,7 @@ public class UpdateStage<T> implements TerminationStage<Integer> {
         if (batchEntities.isEmpty()) {
             return new int[0];
         }
-        BatchUpdateSql batch = buildBatchSql(SQL.getSqluxGlobal().getDbType());
+        BatchUpdateSql batch = buildBatchSql();
         if (batch == null) {
             return new int[0];
         }
@@ -241,7 +241,17 @@ public class UpdateStage<T> implements TerminationStage<Integer> {
      * 翻译 UPDATE 语句，不执行数据库操作。
      */
     public SqlResult toSql() {
-        return toSql(SQL.getSqluxGlobal().getDbType());
+        if (isBatchMode()) {
+            BatchUpdateSql batch = buildBatchSql();
+            if (batch == null) {
+                throw new IllegalStateException("UPDATE批量模式缺少实体数据");
+            }
+            return batch.getSqlResult();
+        }
+        for (Interceptor interceptor : SQL.getSqluxGlobal().snapshotInterceptors()) {
+            interceptor.beforeTranslate(new SqlRewriteContext(SqlType.UPDATE, query));
+        }
+        return DialectFactory.getDialect(SQL.getSqluxGlobal().getDbType()).updateTranslator().translate(query);
     }
 
     /**
@@ -319,6 +329,24 @@ public class UpdateStage<T> implements TerminationStage<Integer> {
         return firstSql == null ? null : new BatchUpdateSql(firstSql, batchParams);
     }
 
+    private BatchUpdateSql buildBatchSql() {
+        if (!isBatchMode()) {
+            return null;
+        }
+        List<List<Object>> batchParams = new ArrayList<>();
+        SqlResult firstSql = null;
+        for (T entity : batchEntities) {
+            SqlResult entitySql = toBatchEntitySql(entity);
+            if (firstSql == null) {
+                firstSql = entitySql;
+            } else if (!firstSql.getSql().equals(entitySql.getSql())) {
+                throw new IllegalStateException("UPDATE批量实体的可更新字段集合必须一致");
+            }
+            batchParams.add(entitySql.getParams());
+        }
+        return firstSql == null ? null : new BatchUpdateSql(firstSql, batchParams);
+    }
+
     /**
      * 将单个实体转换为批处理所需的 UPDATE SQL。
      *
@@ -332,6 +360,14 @@ public class UpdateStage<T> implements TerminationStage<Integer> {
             interceptor.beforeTranslate(new SqlRewriteContext(SqlType.UPDATE, batchQuery));
         }
         return DialectFactory.getDialect(dbType).updateTranslator().translate(batchQuery);
+    }
+
+    private SqlResult toBatchEntitySql(T entity) {
+        UpdateQuery batchQuery = buildBatchEntityQuery(entity);
+        for (Interceptor interceptor : SQL.getSqluxGlobal().snapshotInterceptors()) {
+            interceptor.beforeTranslate(new SqlRewriteContext(SqlType.UPDATE, batchQuery));
+        }
+        return DialectFactory.getDialect(SQL.getSqluxGlobal().getDbType()).updateTranslator().translate(batchQuery);
     }
 
     /**

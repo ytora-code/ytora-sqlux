@@ -22,6 +22,11 @@ final class SelectSqlSupport {
     private SelectSqlSupport() {
     }
 
+    static SqlResult toSql(SelectQuery query) {
+        applyBeforeTranslate(query);
+        return translateDirect(query, SQL.getSqluxGlobal().getDbType());
+    }
+
     static SqlResult toSql(SelectQuery query, DbType dbType) {
         applyBeforeTranslate(query);
         return translateDirect(query, dbType);
